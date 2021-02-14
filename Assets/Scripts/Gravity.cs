@@ -6,19 +6,21 @@ using UnityEngine;
 using UnityEngine.Serialization;
 using Vector3 = UnityEngine.Vector3;
 
+
 public static class Vector3Utility
 {
     public static float Dot(this Vector3 u, Vector3 v)
     {
-        return u.x * v.x + u.y*v.y + u.z * v.z;
+        return Vector3.Dot(u, v);
     }
 
     public static Vector3 Project(this Vector3 u, Vector3 v)
     {
-        float mod_v = v.magnitude;
-        return v * u.Dot(v) / (mod_v * mod_v);
+        return Vector3.Project(u, v);
     }
 }
+
+
 public class Gravity : MonoBehaviour
 {
     [SerializeField]
