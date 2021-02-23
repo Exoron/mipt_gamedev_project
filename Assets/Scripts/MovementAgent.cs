@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Field;
 using UnityEngine;
 
 public class MovementAgent : MonoBehaviour
@@ -10,12 +11,12 @@ public class MovementAgent : MonoBehaviour
     private Vector3 m_Target;
     
     private const float TOLERANCE = 0.1f;
+    
     void Start()
     {
 
     }
 
-    // Update is called once per frame
     void Update()
     {
         if ((m_Target - transform.position).magnitude < TOLERANCE)
@@ -26,5 +27,10 @@ public class MovementAgent : MonoBehaviour
         Vector3 dir = (m_Target - transform.position).normalized;
         Vector3 delta = dir * (m_Speed * Time.deltaTime);
         transform.Translate(delta);
+    }
+
+    public void SetTarget(Vector3 target)
+    {
+        m_Target = target;
     }
 }
