@@ -1,15 +1,22 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Field
 {
     public class Grid
     {
+        public int Width => m_Width;
+
+        public int Height => m_Height;
+
         private Node[,] m_Nodes;
 
         private int m_Width;
         private int m_Height;
 
-        public Grid(int width, int height)
+        private FlowFieldPathFinding m_Pathfinding;
+
+        public Grid(int width, int height, Vector3 offset, float nodeSize, Vector2Int target)
         {
             m_Width = width;
             m_Height = height;
@@ -20,9 +27,12 @@ namespace Field
             {
                 for (int j = 0; j < m_Height; ++j)
                 {
-                    m_Nodes[i, j] = new Node();
+                    m_Nodes[i, j] = new Node(offset + new Vector3(i + .5f, 0, j + .5f) * nodeSize);
                 }
             }
+
+            m_Pathfinding = new FlowFieldPathFinding(this, target);
+            m_Pathfinding.UpdateField();
         }
 
         public Node GetNode(Vector2Int coord)
@@ -37,6 +47,19 @@ namespace Field
                 return null;
             }
             return m_Nodes[i, j];
+        }
+
+        public IEnumerable<Node> AllNodes()
+        {
+            foreach (Node node in m_Nodes)
+            {
+                yield return node;
+            }
+        }
+
+        public void UpdateField()
+        {
+            m_Pathfinding.UpdateField();
         }
     }
 }

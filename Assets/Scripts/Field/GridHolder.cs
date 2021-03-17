@@ -12,6 +12,15 @@ namespace Field
 
         private Grid m_Grid;
 
+        [SerializeField]
+        private Vector2Int m_TargetCoordinate;
+        [SerializeField]
+        private Vector2Int m_StartCoordinate;
+
+        public Grid Grid => m_Grid;
+
+        public Vector2Int StartCoordinate => m_StartCoordinate;
+
         private Camera m_Camera;
 
         private Vector3 m_Offset;
@@ -21,9 +30,8 @@ namespace Field
 
         private void Awake()
         {
-            m_Grid = new Grid(m_GridWidth, m_GridHeight);
             m_Camera = Camera.main;
-            
+
             float width = m_GridWidth * m_Nodesize;
             float height = m_GridHeight * m_Nodesize;
             transform.localScale = new Vector3(
@@ -33,6 +41,7 @@ namespace Field
 
             m_Offset = transform.position - 
                        new Vector3(width, 0f, height) * 0.5f;
+            m_Grid = new Grid(m_GridWidth, m_GridHeight, m_Offset, m_Nodesize, m_TargetCoordinate);
         }
 
         private void OnValidate()
@@ -50,7 +59,30 @@ namespace Field
 
         private void Update()
         {
-            
+            Vector3 mousePosition = Input.mousePosition;
+            Ray ray = m_Camera.ScreenPointToRay(mousePosition);
+            if (!Physics.Raycast(ray, out RaycastHit hit))
+            {
+                return;
+            }
+
+            if (hit.transform != transform)
+            {
+                return;
+            }
+
+            Vector3 hitPosition = hit.point;
+            Vector3 difference = hitPosition - m_Offset;
+
+            int x = (int) (difference.x / m_Nodesize);
+            int y = (int) (difference.z / m_Nodesize);
+
+            if (Input.GetMouseButtonDown(0))
+            {
+                Node node = m_Grid.GetNode(x, y);
+                node.IsOccupied = !node.IsOccupied;
+                m_Grid.UpdateField();
+            }
         }
 
         // Coordinates of centre of a node the mouse points on
@@ -96,17 +128,34 @@ namespace Field
         
         private void OnDrawGizmos()
         {
-            Gizmos.color = Color.blue;
-            Vector3 height = Vector3.up * 0.1f;
-            for (int i = 0; i <= m_GridWidth; ++i)
+            if (m_Grid == null)
             {
-                Gizmos.DrawLine(m_Nodesize * i * Vector3.right + height + m_Offset,
-                    m_Nodesize * i * Vector3.right + m_Offset + height + Vector3.forward * m_GridHeight);
+                return;
             }
-            for (int j = 0; j <= m_GridHeight; ++j)
+
+            Gizmos.color = Color.red;
+            
+            foreach (Node node in m_Grid.AllNodes())
             {
-                Gizmos.DrawLine(m_Nodesize * j * Vector3.forward + height + m_Offset,
-                    m_Nodesize * j * Vector3.forward + m_Offset + height + Vector3.right * m_GridWidth);            }
+                if (node.NextNode == null)
+                {
+                    continue;
+                }
+
+                if (node.IsOccupied)
+                {
+                    continue;
+                }
+                Vector3 start = node.Position;
+                Vector3 end = node.NextNode.Position;
+
+                Vector3 dir = end - start;
+                start -= dir * .25f;
+                end -= dir * .75f;
+
+                Gizmos.DrawLine(start, end);
+                Gizmos.DrawSphere(end, .1f);
+            }            
         }
     }
 }
