@@ -5,33 +5,35 @@ namespace Field
 {
     public class Grid
     {
-        public int Width => m_Width;
-
-        public int Height => m_Height;
-
         private Node[,] m_Nodes;
 
         private int m_Width;
         private int m_Height;
 
+        // script for finding shortest paths to target node
         private FlowFieldPathFinding m_Pathfinding;
 
-        public Grid(int width, int height, Vector3 offset, float nodeSize, Vector2Int target)
+        public int Width => m_Width;
+        public int Height => m_Height;
+        public FlowFieldPathFinding Pathfinding => m_Pathfinding;
+
+        public Grid(int width, int height, Vector3 offset, float nodeSize, Vector2Int start, Vector2Int target)
         {
             m_Width = width;
             m_Height = height;
 
             m_Nodes = new Node[m_Width, m_Height];
 
-            for (int i = 0; i < m_Width; ++i)
+            for (int x = 0; x < m_Width; ++x)
             {
-                for (int j = 0; j < m_Height; ++j)
+                for (int y = 0; y < m_Height; ++y)
                 {
-                    m_Nodes[i, j] = new Node(offset + new Vector3(i + .5f, 0, j + .5f) * nodeSize);
+                    m_Nodes[x, y] = new Node(offset + new Vector3(x + .5f, 0, y + .5f) * nodeSize,
+                    new Vector2Int(x, y));
                 }
             }
 
-            m_Pathfinding = new FlowFieldPathFinding(this, target);
+            m_Pathfinding = new FlowFieldPathFinding(this, start, target);
             m_Pathfinding.UpdateField();
         }
 
@@ -40,13 +42,13 @@ namespace Field
             return GetNode(coord.x, coord.y);
         }
 
-        public Node GetNode(int i, int j)
+        public Node GetNode(int x, int y)
         {
-            if (i < 0 || i >= m_Width || j < 0 || j >= m_Height)
+            if (x < 0 || x >= m_Width || y < 0 || y >= m_Height)
             {
                 return null;
             }
-            return m_Nodes[i, j];
+            return m_Nodes[x, y];
         }
 
         public IEnumerable<Node> AllNodes()
