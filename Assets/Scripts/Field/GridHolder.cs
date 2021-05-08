@@ -168,7 +168,21 @@ namespace Field
                     Gizmos.DrawCube(start, size);
                     continue;
                 }
-                Gizmos.color = Color.red;
+
+                if (node.OccupationAvailability == EOccupationAvailability.Undefined)
+                {
+                    Gizmos.color = Color.yellow;
+                }
+                else if(node.OccupationAvailability == EOccupationAvailability.CanOccupy)
+                {
+                    Gizmos.color = Color.green;
+                }
+                else
+                {
+                    Gizmos.color = Color.red;
+                }
+
+                //Gizmos.color = Color.red;
                 Vector3 end = node.NextNode.Position;
 
                 Vector3 dir = end - start;
