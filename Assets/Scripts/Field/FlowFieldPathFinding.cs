@@ -7,11 +7,14 @@ namespace Field
 {
     public class FlowFieldPathFinding
     {
+        public Vector2Int Target => m_Target;
+        public Vector2Int Start => m_Start;
+
         private Grid m_Grid;
         private Vector2Int m_Target;
         private Vector2Int m_Start;
         private static float root2 = (float)Math.Sqrt(2);
-        private bool m_NeedUpdate = true;
+        //private bool m_NeedUpdate = true;
         
         // comparer for nodes in Dijkstra algorithm
         // compares by path length then lexically by coords (to distinguish nodes with equal paths)
@@ -65,11 +68,6 @@ namespace Field
         // Dijkstra algorithm
         public void UpdateField()
         {
-            if (!m_NeedUpdate)
-            {
-                // no need to update anything
-                return;
-            }
             foreach (Node node in m_Grid.AllNodes())
             {
                 node.ResetWeight();
@@ -102,81 +100,19 @@ namespace Field
                     }
                 }
             }
-            
-            ResetCache();
         }
-
-        public void ResetCache()
-        {
-            Debug.Log("Cache reset!");
-            for (int y = 0; y < m_Grid.Height; ++y)
-            {
-                for (int x = 0; x < m_Grid.Width; ++x)
-                {
-                    m_Grid.GetNode(x, y).OccupationAvailability = EOccupationAvailability.CanOccupy;
-                }
-            }
-            
-            var current_node = m_Grid.GetNode(m_Start);
-
-            while (current_node.Coords != m_Target)
-            {
-                current_node.OccupationAvailability = EOccupationAvailability.Undefined;
-                /*
-                 
-                 * : Node
-                 ? : Undefinded
-                 | : Vertical edge
-                 /, \ : Diagonal edge
-                 
-                 Case 1:
-                 . . .      . . .
-                 . * .      . ? .
-                 . | .  =>  . | .
-                 . * .      . ? .           
-                 . . .      . . .
-                 Same for horisontal           
-                 
-                 Case 2:
-                 . . . . .      . . . . .
-                 . * . * .      . ? . ? .
-                 . . / . .  =>  . . / . .
-                 . * . * .      . ? . ? .
-                 . . . . .      . . . . .
-                 Same for other diagonal
-                 
-                 */
-
-                if (current_node.HasDiagonalEdge())
-                {
-                    int x1 = current_node.Coords.x;
-                    int y1 = current_node.Coords.y;
-                    int x2 = current_node.NextNode.Coords.x;
-                    int y2 = current_node.NextNode.Coords.y;
-
-                    m_Grid.GetNode(x1, y2).OccupationAvailability = EOccupationAvailability.Undefined;
-                    m_Grid.GetNode(x2, y1).OccupationAvailability = EOccupationAvailability.Undefined;
-                }
-
-                current_node = current_node.NextNode;
-            }
-            
-            m_Grid.GetNode(m_Start).OccupationAvailability = EOccupationAvailability.CannotOccupy; 
-            m_Grid.GetNode(m_Target).OccupationAvailability = EOccupationAvailability.CannotOccupy;
-        }
-
 
         // BFS from target
-        public bool CanOccupy(Vector2Int coord)
+        public bool CanOccupy(Vector2Int coord, out bool needUpdate)
         {
             Node targetNode = m_Grid.GetNode(coord);
             bool? canOccupy = targetNode.CanOccupy();
             if (canOccupy.HasValue)
             {
-                m_NeedUpdate = false; // nothing important changed
+                needUpdate = false; // nothing important changed
                 return canOccupy.Value;
             }
-            m_NeedUpdate = true;
+            needUpdate = true;
 
             // see if with the node occupied a path still exist
             targetNode.IsOccupied = true;
@@ -219,7 +155,7 @@ namespace Field
             // remove temporary occupation
             targetNode.IsOccupied = false;
             targetNode.OccupationAvailability = EOccupationAvailability.CannotOccupy;
-            m_NeedUpdate = false; // grid will not change. No update necessary
+            needUpdate = false; // grid will not change. No update necessary
             return false;
         }
 

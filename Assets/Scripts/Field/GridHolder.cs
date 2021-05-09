@@ -17,6 +17,8 @@ namespace Field
         [SerializeField]
         private Vector2Int m_StartCoordinate;
 
+        private bool m_NeedUpdate;
+
         public Grid Grid => m_Grid;
 
         public Vector2Int StartCoordinate => m_StartCoordinate;
@@ -42,6 +44,7 @@ namespace Field
             m_Offset = transform.position - 
                        new Vector3(width, 0f, height) * 0.5f;
             m_Grid = new Grid(m_GridWidth, m_GridHeight, m_Offset, m_Nodesize, m_StartCoordinate, m_TargetCoordinate);
+            ResetCache();
         }
 
         // for editor preview
@@ -84,12 +87,76 @@ namespace Field
                 int y = (int) (difference.z / m_Nodesize);
                 Vector2Int coords = new Vector2Int(x, y);
 
-                TryOccupyNode(coords, m_StartCoordinate);
-                m_Grid.UpdateField();
+                ProcessClickOnGrid(coords, m_StartCoordinate);
+                if(m_NeedUpdate)
+                {
+                    m_Grid.UpdateField();
+                    ResetCache();
+                }
             }
         }
+        
+        private void ResetCache()
+        {
+            Debug.Log("Cache reset!");
+            for (int y = 0; y < m_Grid.Height; ++y)
+            {
+                for (int x = 0; x < m_Grid.Width; ++x)
+                {
+                    m_Grid.GetNode(x, y).OccupationAvailability = EOccupationAvailability.CanOccupy;
+                }
+            }
+            
+            var current_node = m_Grid.GetNode(m_Grid.Start);
 
-        private void TryOccupyNode(Vector2Int coords, Vector2Int start)
+            while (current_node.Coords != m_Grid.Target)
+            {
+                current_node.OccupationAvailability = EOccupationAvailability.Undefined;
+                /*
+                 
+                 * : Node
+                 ? : Undefinded
+                 | : Vertical edge
+                 /, \ : Diagonal edge
+                 
+                 Case 1:
+                 . . .      . . .
+                 . * .      . ? .
+                 . | .  =>  . | .
+                 . * .      . ? .           
+                 . . .      . . .
+                 Same for horisontal           
+                 
+                 Case 2:
+                 . . . . .      . . . . .
+                 . * . * .      . ? . ? .
+                 . . / . .  =>  . . / . .
+                 . * . * .      . ? . ? .
+                 . . . . .      . . . . .
+                 Same for other diagonal
+                 
+                 */
+
+                if (current_node.HasDiagonalEdge())
+                {
+                    int x1 = current_node.Coords.x;
+                    int y1 = current_node.Coords.y;
+                    int x2 = current_node.NextNode.Coords.x;
+                    int y2 = current_node.NextNode.Coords.y;
+
+                    m_Grid.GetNode(x1, y2).OccupationAvailability = EOccupationAvailability.Undefined;
+                    m_Grid.GetNode(x2, y1).OccupationAvailability = EOccupationAvailability.Undefined;
+                }
+
+                current_node = current_node.NextNode;
+            }
+            
+            m_Grid.GetNode(m_Grid.Start).OccupationAvailability = EOccupationAvailability.CannotOccupy; 
+            m_Grid.GetNode(m_Grid.Target).OccupationAvailability = EOccupationAvailability.CannotOccupy;
+            m_NeedUpdate = false;
+        }
+
+        private void ProcessClickOnGrid(Vector2Int coords, Vector2Int start)
         {
             Node node = m_Grid.GetNode(coords.x, coords.y);
             if (node == null)
@@ -98,10 +165,28 @@ namespace Field
                 return;
             }
 
-            if (node.IsOccupied || m_Grid.Pathfinding.CanOccupy(coords))
+            if (node.IsOccupied)
             {
-                node.IsOccupied = !node.IsOccupied;
+                FreeNode(node);
             }
+            else
+            {
+                TryOccupyNode(node, coords);
+            }
+        }
+
+        private void TryOccupyNode(Node node, Vector2Int coords)
+        {
+            if (m_Grid.Pathfinding.CanOccupy(coords, out m_NeedUpdate))
+            {
+                node.IsOccupied = true;
+            }
+        }
+        
+        private void FreeNode(Node node)
+        {
+            m_NeedUpdate = true;
+            node.IsOccupied = false;
         }
 
         // coords of centre of a node the mouse points to
